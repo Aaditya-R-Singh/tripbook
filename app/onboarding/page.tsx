@@ -5,14 +5,15 @@ import { useRouter, useSearchParams } from "next/navigation"
 import { createOwner, register } from "@/app/actions/onboarding"
 import { getSupabase } from "@/lib/supabase"
 import toast from "react-hot-toast"
-import { Eye, EyeOff, Loader2 } from "lucide-react"
+import { Eye, EyeOff, Loader2, Truck } from "lucide-react"
+import { Button } from "@/components/ui/button"
 
 const initialState = { error: null as string | null }
 
 export default function OnboardingPage() {
   return (
     <Suspense fallback={
-      <div className="flex min-h-screen items-center justify-center">
+      <div className="flex min-h-screen items-center justify-center bg-background">
         <Loader2 className="size-6 animate-spin text-muted-foreground" />
       </div>
     }>
@@ -51,7 +52,7 @@ function OnboardingForm() {
 
   if (session === null) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
+      <div className="flex min-h-screen items-center justify-center bg-background">
         <Loader2 className="size-6 animate-spin text-muted-foreground" />
       </div>
     )
@@ -59,41 +60,42 @@ function OnboardingForm() {
 
   if (session) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gradient-to-b from-blue-50 to-white p-4">
-        <div className="w-full max-w-md space-y-8 text-center">
-          <div className="space-y-2">
-            <h1 className="text-4xl font-bold tracking-tight text-blue-600">TripBook</h1>
-            <p className="text-lg text-gray-500">प्रोफ़ाइल सेटअप</p>
+      <div className="flex min-h-screen items-center justify-center bg-background p-4">
+        <div className="w-full max-w-md space-y-8 text-center animate-fade-in-up">
+          <div className="space-y-4">
+            <div className="mx-auto flex size-16 items-center justify-center rounded-2xl bg-gradient-brand shadow-premium-lg">
+              <Truck className="size-8 text-white" />
+            </div>
+            <div>
+              <h1 className="text-4xl font-bold tracking-tight text-foreground">TripBook</h1>
+              <p className="mt-1 text-sm text-gold-600">प्रोफ़ाइल सेटअप</p>
+            </div>
           </div>
-          <form action={setupAction} className="space-y-6 rounded-2xl bg-white p-8 shadow-lg">
+          <form action={setupAction} className="space-y-5 rounded-2xl bg-white p-8 shadow-premium-card animate-scale-in">
             <div className="text-left">
-              <label className="text-lg font-medium text-gray-700">आपका नाम</label>
+              <label className="text-sm font-medium text-foreground">आपका नाम</label>
               <input
                 type="text"
                 name="name"
                 placeholder="Your Name"
-                className="mt-2 block w-full rounded-lg border border-gray-300 px-4 py-3 text-lg focus:border-blue-500 focus:outline-none"
+                className="mt-1.5 block w-full rounded-xl border border-border px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring/10"
                 disabled={setupPending}
                 required
               />
             </div>
             <div className="text-left">
-              <label className="text-lg font-medium text-gray-700">व्यवसाय का नाम</label>
+              <label className="text-sm font-medium text-foreground">व्यवसाय का नाम</label>
               <input
                 type="text"
                 name="businessName"
                 placeholder="Business Name (optional)"
-                className="mt-2 block w-full rounded-lg border border-gray-300 px-4 py-3 text-lg focus:border-blue-500 focus:outline-none"
+                className="mt-1.5 block w-full rounded-xl border border-border px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring/10"
                 disabled={setupPending}
               />
             </div>
-            <button
-              type="submit"
-              disabled={setupPending}
-              className="w-full rounded-lg bg-blue-600 px-6 py-3 text-lg font-semibold text-white hover:bg-blue-700 transition disabled:opacity-50 min-h-[48px]"
-            >
+            <Button type="submit" disabled={setupPending} className="w-full h-11 text-base font-semibold" size="lg">
               {setupPending ? "बना रहे हैं..." : "खाता बनाएं"}
-            </button>
+            </Button>
           </form>
         </div>
       </div>
@@ -101,90 +103,98 @@ function OnboardingForm() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-b from-blue-50 to-white p-4">
-      <div className="w-full max-w-md space-y-8 text-center">
-        <div className="space-y-2">
-          <h1 className="text-4xl font-bold tracking-tight text-blue-600">TripBook</h1>
-          <p className="text-lg text-gray-500">नया खाता बनाएं</p>
+    <div className="flex min-h-screen items-center justify-center bg-background p-4">
+      <div className="w-full max-w-md space-y-8 text-center animate-fade-in-up">
+        <div className="space-y-4">
+          <div className="mx-auto flex size-16 items-center justify-center rounded-2xl bg-gradient-brand shadow-premium-lg">
+            <Truck className="size-8 text-white" />
+          </div>
+          <div>
+            <h1 className="text-4xl font-bold tracking-tight text-foreground">TripBook</h1>
+            <p className="mt-1 text-sm text-gold-600">नया खाता बनाएं</p>
+          </div>
         </div>
-        <form action={registerAction} className="space-y-6 rounded-2xl bg-white p-8 shadow-lg">
+        <form action={registerAction} className="space-y-5 rounded-2xl bg-white p-8 shadow-premium-card animate-scale-in">
           <div className="text-left">
-            <label className="text-lg font-medium text-gray-700">फ़ोन नंबर</label>
-            <div className="mt-2 flex">
-              <span className="inline-flex items-center rounded-l-lg border border-r-0 border-gray-300 bg-gray-50 px-4 text-lg text-gray-500">+91</span>
+            <label className="text-sm font-medium text-foreground">फ़ोन नंबर</label>
+            <div className="mt-1.5 flex">
+              <span className="inline-flex items-center rounded-l-xl border border-r-0 border-border bg-muted px-4 text-sm text-muted-foreground">+91</span>
               <input
                 type="tel"
                 name="phone"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
                 placeholder="9876543210"
-                className="block w-full rounded-r-lg border border-gray-300 px-4 py-3 text-lg focus:border-blue-500 focus:outline-none"
+                className="block w-full rounded-r-xl border border-border px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring/10"
                 disabled={registerPending}
                 required
               />
             </div>
           </div>
           <div className="text-left">
-            <label className="text-lg font-medium text-gray-700">पासवर्ड</label>
-            <div className="mt-2 relative">
+            <label className="text-sm font-medium text-foreground">पासवर्ड</label>
+            <div className="mt-1.5 relative">
               <input
                 type={showPassword ? "text" : "password"}
                 name="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Minimum 6 characters"
-                className="block w-full rounded-lg border border-gray-300 px-4 py-3 pr-12 text-lg focus:border-blue-500 focus:outline-none"
+                className="block w-full rounded-xl border border-border px-4 py-2.5 pr-12 text-sm text-foreground placeholder:text-muted-foreground focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring/10"
                 disabled={registerPending}
                 required
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                 tabIndex={-1}
               >
-                {showPassword ? <EyeOff className="size-5" /> : <Eye className="size-5" />}
+                {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
               </button>
             </div>
           </div>
           <div className="text-left">
-            <label className="text-lg font-medium text-gray-700">आपका नाम</label>
+            <label className="text-sm font-medium text-foreground">आपका नाम</label>
             <input
               type="text"
               name="name"
               placeholder="Your Name"
-              className="mt-2 block w-full rounded-lg border border-gray-300 px-4 py-3 text-lg focus:border-blue-500 focus:outline-none"
+              className="mt-1.5 block w-full rounded-xl border border-border px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring/10"
               disabled={registerPending}
               required
             />
           </div>
           <div className="text-left">
-            <label className="text-lg font-medium text-gray-700">व्यवसाय का नाम</label>
+            <label className="text-sm font-medium text-foreground">व्यवसाय का नाम</label>
             <input
               type="text"
               name="businessName"
               placeholder="Business Name (optional)"
-              className="mt-2 block w-full rounded-lg border border-gray-300 px-4 py-3 text-lg focus:border-blue-500 focus:outline-none"
+              className="mt-1.5 block w-full rounded-xl border border-border px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring/10"
               disabled={registerPending}
             />
           </div>
-          <button
-            type="submit"
-            disabled={registerPending}
-            className="w-full rounded-lg bg-blue-600 px-6 py-3 text-lg font-semibold text-white hover:bg-blue-700 transition disabled:opacity-50 min-h-[48px]"
-          >
+          <Button type="submit" disabled={registerPending} className="w-full h-11 text-base font-semibold" size="lg">
             {registerPending ? "बना रहे हैं..." : "खाता बनाएं"}
+          </Button>
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-border" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-white px-2 text-muted-foreground">
+                पहले से खाता है?
+              </span>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => router.push("/")}
+            className="w-full rounded-xl border border-gold-300 px-6 py-2.5 text-sm font-medium text-gold-600 hover:bg-gold-50 transition-colors"
+          >
+            लॉगिन करें
           </button>
-          <p className="text-sm text-gray-500">
-            पहले से खाता है?{" "}
-            <button
-              type="button"
-              onClick={() => router.push("/")}
-              className="text-blue-600 hover:underline font-medium"
-            >
-              लॉगिन करें
-            </button>
-          </p>
         </form>
       </div>
     </div>
