@@ -133,9 +133,9 @@ export default function LoginPage() {
 
     setSetupLoading(true)
     const { data: { session } } = await supabase.auth.getSession()
-    const token = session?.access_token
+    const userId = session?.user?.id
 
-    if (!token) {
+    if (!userId) {
       setSetupLoading(false)
       toast.error("Session expired, please login again")
       return
@@ -143,11 +143,8 @@ export default function LoginPage() {
 
     const res = await fetch("/api/create-owner", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({ name: setupName.trim(), businessName: setupBusiness.trim(), city: setupCity.trim() }),
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: setupName.trim(), businessName: setupBusiness.trim(), city: setupCity.trim(), userId }),
     })
 
     const data = await res.json()

@@ -2,30 +2,27 @@ import { createClient } from "@supabase/supabase-js"
 import { NextRequest, NextResponse } from "next/server"
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
 
 export async function POST(req: NextRequest) {
-  const authHeader = req.headers.get("authorization")
-  if (!authHeader?.startsWith("Bearer ")) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-  }
+  const { name, businessName, city, userId } = await req.json()
 
-  const token = authHeader.slice(7)
-  const supabase = createClient(supabaseUrl, supabaseAnonKey)
-  const { data: { user }, error: authError } = await supabase.auth.getUser(token)
-
-  if (authError || !user?.email) {
+  if (!userId) {
     return NextResponse.json({ error: "उपयोगकर्ता नहीं मिला" }, { status: 401 })
   }
 
-  const { name, businessName, city } = await req.json()
+  const admin = createClient(supabaseUrl, serviceRoleKey)
+  const { data: { user }, error: userError } = await admin.auth.admin.getUserById(userId)
+
+  if (userError || !user?.email) {
+    return NextResponse.json({ error: "उपयोगकर्ता नहीं मिला" }, { status: 401 })
+  }
+
   if (!name?.trim()) {
     return NextResponse.json({ error: "अपना नाम डालें" }, { status: 400 })
   }
 
   const phone = user.email.replace("@tripbook.app", "")
-  const admin = createClient(supabaseUrl, serviceRoleKey)
 
   const { error } = await admin.from("owners").insert({
     id: user.id,
