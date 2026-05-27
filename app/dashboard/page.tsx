@@ -56,14 +56,15 @@ export default function DashboardPage() {
   const loadData = useCallback(async () => {
     setError(null)
     try {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (user) {
+      const { data: session } = await supabase.auth.getSession()
+      const userId = session?.session?.user?.id
+      if (userId) {
         const { data: owner } = await supabase
           .from("owners")
           .select("name")
-          .eq("id", user.id)
-          .single()
-        if (owner) setOwnerName(owner.name)
+          .eq("id", userId)
+          .maybeSingle()
+        if (owner?.name) setOwnerName(owner.name)
       }
 
       const today = new Date().toISOString().slice(0, 10)
