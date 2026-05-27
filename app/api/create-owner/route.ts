@@ -5,27 +5,17 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
 
 export async function POST(req: NextRequest) {
-  const { name, businessName, city, userId } = await req.json()
+  const { name, businessName, city, userId, email } = await req.json()
 
-  if (!userId) {
-    return NextResponse.json({ error: "उपयोगकर्ता नहीं मिला" }, { status: 401 })
+  if (!userId || !name?.trim()) {
+    return NextResponse.json({ error: "अपना नाम और यूज़र आईडी डालें" }, { status: 400 })
   }
 
+  const phone = email?.replace("@tripbook.app", "") || userId
   const admin = createClient(supabaseUrl, serviceRoleKey)
-  const { data: { user }, error: userError } = await admin.auth.admin.getUserById(userId)
-
-  if (userError || !user?.email) {
-    return NextResponse.json({ error: "उपयोगकर्ता नहीं मिला" }, { status: 401 })
-  }
-
-  if (!name?.trim()) {
-    return NextResponse.json({ error: "अपना नाम डालें" }, { status: 400 })
-  }
-
-  const phone = user.email.replace("@tripbook.app", "")
 
   const { error } = await admin.from("owners").insert({
-    id: user.id,
+    id: userId,
     name: name.trim(),
     phone,
     business_name: businessName?.trim() || null,
@@ -35,7 +25,7 @@ export async function POST(req: NextRequest) {
   if (error) {
     if (error.message?.includes("city")) {
       const { error: retryError } = await admin.from("owners").insert({
-        id: user.id,
+        id: userId,
         name: name.trim(),
         phone,
         business_name: businessName?.trim() || null,
@@ -48,7 +38,7 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  await admin.auth.admin.updateUserById(user.id, { user_metadata: { phone } })
+  await admin.auth.admin.updateUserById(userId, { user_metadata: { phone } })
 
   return NextResponse.json({ success: true })
 }

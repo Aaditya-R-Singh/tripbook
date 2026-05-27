@@ -134,6 +134,7 @@ export default function LoginPage() {
     setSetupLoading(true)
     const { data: { session } } = await supabase.auth.getSession()
     const userId = session?.user?.id
+    const email = session?.user?.email
 
     if (!userId) {
       setSetupLoading(false)
@@ -144,7 +145,7 @@ export default function LoginPage() {
     const res = await fetch("/api/create-owner", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: setupName.trim(), businessName: setupBusiness.trim(), city: setupCity.trim(), userId }),
+      body: JSON.stringify({ name: setupName.trim(), businessName: setupBusiness.trim(), city: setupCity.trim(), userId, email }),
     })
 
     const data = await res.json()
