@@ -1,10 +1,10 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { getSupabase } from "@/lib/supabase"
 import toast from "react-hot-toast"
-import { Eye, EyeOff, Truck } from "lucide-react"
+import { Eye, EyeOff, Truck, AlertTriangle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
 export default function LoginPage() {
@@ -14,6 +14,14 @@ export default function LoginPage() {
   const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [accountDeleted, setAccountDeleted] = useState(false)
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    if (params.get("error") === "account_deleted") {
+      setAccountDeleted(true)
+    }
+  }, [])
 
   const handleLogin = async () => {
     if (phone.length !== 10) {
@@ -80,6 +88,21 @@ export default function LoginPage() {
             </p>
           </div>
         </div>
+
+        {/* Account Deleted Alert */}
+        {accountDeleted && (
+          <div className="animate-slide-down rounded-2xl border border-red-200 bg-red-50 p-4 text-left shadow-premium-sm">
+            <div className="flex items-start gap-3">
+              <AlertTriangle className="mt-0.5 size-5 shrink-0 text-red-600" />
+              <div>
+                <p className="text-sm font-semibold text-red-800">Account Deleted</p>
+                <p className="mt-1 text-sm text-red-700">
+                  Yeh account delete ho gaya hai. Naya account banao ya admin se contact karo.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Login Card */}
         <div className="rounded-2xl bg-white p-8 shadow-premium-card animate-scale-in">
