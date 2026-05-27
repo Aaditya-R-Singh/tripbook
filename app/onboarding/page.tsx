@@ -7,7 +7,8 @@ import { getSupabase } from "@/lib/supabase"
 import toast from "react-hot-toast"
 import { Loader2, Truck, Eye, EyeOff } from "lucide-react"
 
-const initialState = { error: null as string | null }
+type SetupState = { error: string }
+type RegisterState = { error?: string; success?: boolean; email?: string; password?: string }
 
 export default function OnboardingPage() {
   return (
@@ -29,17 +30,19 @@ function OnboardingForm() {
 
   const [checking, setChecking] = useState(true)
   const [hasSession, setHasSession] = useState(false)
+  const [userId, setUserId] = useState<string | null>(null)
 
-  const [setupState, setupAction, setupPending] = useActionState(createOwner, initialState)
+  const [setupState, setupAction, setupPending] = useActionState(createOwner, {} as SetupState)
 
   const [phone, setPhone] = useState(prefilledPhone)
   const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
-  const [registerState, registerAction, registerPending] = useActionState(register, initialState)
+  const [registerState, registerAction, registerPending] = useActionState(register, {} as RegisterState)
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }: { data: { session: unknown } | null }) => {
+    supabase.auth.getSession().then(({ data }: { data: { session: { user: { id: string } | null } | null } | null }) => {
       setHasSession(!!data?.session)
+      setUserId(data?.session?.user?.id ?? null)
       setChecking(false)
     })
   }, [])
@@ -51,6 +54,18 @@ function OnboardingForm() {
   useEffect(() => {
     if (registerState?.error) toast.error(registerState.error)
   }, [registerState?.error])
+
+  useEffect(() => {
+    if (registerState && "success" in registerState && registerState.success) {
+      supabase.auth.signInWithPassword({
+        email: registerState.email!,
+        password: registerState.password!,
+      }).then(({ error }: { error: { message: string } | null }) => {
+        if (error) toast.error(error.message)
+        else router.push("/dashboard")
+      })
+    }
+  }, [registerState])
 
   if (checking) {
     return (
@@ -77,6 +92,7 @@ function OnboardingForm() {
         <div className="rounded-2xl bg-white p-6 shadow-premium-card animate-scale-in">
           {hasSession ? (
             <form action={setupAction} className="space-y-4">
+              <input type="hidden" name="userId" value={userId ?? ""} />
               <div className="text-left">
                 <label className="text-sm font-medium text-foreground">Your Full Name</label>
                 <input type="text" name="name" placeholder="Your Name" className="mt-1.5 block w-full rounded-xl border border-border px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring/10" disabled={setupPending} required />
