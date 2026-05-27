@@ -68,7 +68,7 @@ export default function PaymentsPage() {
   const [markPaidTrip, setMarkPaidTrip] = useState<TripRow | null>(null)
   const [paidAmount, setPaidAmount] = useState("")
   const [paidDate, setPaidDate] = useState("")
-  const [paidNotes, setPaidNotes] = useState("")
+  const [paidMode, setPaidMode] = useState("cash")
   const [markingPaid, setMarkingPaid] = useState(false)
 
   async function loadData() {
@@ -168,7 +168,7 @@ export default function PaymentsPage() {
     setMarkPaidTrip(trip)
     setPaidAmount(trip.amount?.toString() ?? "")
     setPaidDate(format(new Date(), "yyyy-MM-dd"))
-    setPaidNotes("")
+    setPaidMode("cash")
   }
 
   async function handleMarkPaid(e: React.FormEvent) {
@@ -195,7 +195,7 @@ export default function PaymentsPage() {
         trip_id: markPaidTrip.id,
         amount,
         paid_at: paidDate + "T00:00:00",
-        notes: paidNotes.trim() || null,
+        notes: paidMode,
       })
 
       if (insertErr) throw new Error(insertErr.message)
@@ -650,13 +650,17 @@ export default function PaymentsPage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="paid_notes">Notes (optional)</Label>
-                <Input
-                  id="paid_notes"
-                  placeholder="e.g. Cash, Cheque #123"
-                  value={paidNotes}
-                  onChange={(e) => setPaidNotes(e.target.value)}
-                />
+                <Label htmlFor="paid_mode">Payment Mode</Label>
+                <Select value={paidMode} onValueChange={(v) => setPaidMode(v ?? "cash")}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="cash">Cash</SelectItem>
+                    <SelectItem value="cheque">Cheque</SelectItem>
+                    <SelectItem value="online">Online</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               <DialogFooter showCloseButton>
                 <Button
