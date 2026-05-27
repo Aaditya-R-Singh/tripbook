@@ -42,6 +42,7 @@ type TripRow = {
   destination: string | null
   material: string
   trip_start_time: string
+  trip_end_time: string | null
   amount: number | null
   payment_status: string
   status: string
@@ -62,7 +63,6 @@ type TripForm = {
   material: string
   amount: string
   trip_start_time: string
-  trip_end_time: string
 }
 
 const emptyForm: TripForm = {
@@ -73,7 +73,6 @@ const emptyForm: TripForm = {
   material: "sand",
   amount: "",
   trip_start_time: "",
-  trip_end_time: "",
 }
 
 type DatePreset = "today" | "week" | "month" | "custom"
@@ -101,6 +100,10 @@ export default function TripsPage() {
   const [payDate, setPayDate] = useState("")
   const [payMode, setPayMode] = useState("cash")
   const [markingPaid, setMarkingPaid] = useState(false)
+
+  const [closeTrip, setCloseTrip] = useState<TripRow | null>(null)
+  const [closeDateTime, setCloseDateTime] = useState("")
+  const [closing, setClosing] = useState(false)
 
   async function fetchData() {
     setError(null)
@@ -232,8 +235,7 @@ export default function TripsPage() {
   }
 
   function openAddDialog() {
-    const now = localDatetime(new Date())
-    setForm({ ...emptyForm, trip_start_time: now, trip_end_time: now })
+    setForm({ ...emptyForm, trip_start_time: localDatetime(new Date()) })
     setDialogOpen(true)
   }
 
@@ -254,7 +256,6 @@ export default function TripsPage() {
       material: form.material || "sand",
       amount: form.amount ? parseFloat(form.amount) : null,
       trip_start_time: (form.trip_start_time || localDatetime(new Date())) + ":00",
-      trip_end_time: form.trip_end_time ? form.trip_end_time + ":00" : null,
     })
 
     if (error) {
@@ -266,6 +267,33 @@ export default function TripsPage() {
     toast.success("Saved! ✅")
     setSaving(false)
     setDialogOpen(false)
+    await fetchData()
+  }
+
+  function openCloseDialog(trip: TripRow) {
+    setCloseTrip(trip)
+    setCloseDateTime(localDatetime(new Date()))
+  }
+
+  async function handleCloseTrip(e: React.FormEvent) {
+    e.preventDefault()
+    if (!closeTrip) return
+
+    setClosing(true)
+    const { error } = await supabase
+      .from("trips")
+      .update({ status: "completed", trip_end_time: closeDateTime + ":00" })
+      .eq("id", closeTrip.id)
+
+    if (error) {
+      toast.error(error.message)
+      setClosing(false)
+      return
+    }
+
+    toast.success("Trip closed! ✅")
+    setCloseTrip(null)
+    setClosing(false)
     await fetchData()
   }
 
@@ -503,11 +531,18 @@ export default function TripsPage() {
                             </Badge>
                           </TableCell>
                           <TableCell className="text-right whitespace-nowrap">
-                            {(trip.payment_status === "pending" || trip.payment_status === "partial") && (
-                              <Button variant="outline" size="sm" onClick={() => openPayDialog(trip)}>
-                                {trip.payment_status === "partial" ? "Pay More" : "Mark Paid"}
-                              </Button>
-                            )}
+                            <div className="flex flex-col items-end gap-1">
+                              {(trip.payment_status === "pending" || trip.payment_status === "partial") && (
+                                <Button variant="outline" size="sm" onClick={() => openPayDialog(trip)}>
+                                  {trip.payment_status === "partial" ? "Pay More" : "Mark Paid"}
+                                </Button>
+                              )}
+                              {trip.status === "active" && (
+                                <Button variant="outline" size="sm" onClick={() => openCloseDialog(trip)}>
+                                  Close Trip
+                                </Button>
+                              )}
+                            </div>
                           </TableCell>
                         </TableRow>
                       ))}
@@ -564,6 +599,11 @@ export default function TripsPage() {
                           </Button>
                         )}
                       </div>
+                      {trip.status === "active" && (
+                        <Button variant="outline" size="sm" className="mt-2 w-full min-h-[40px]" onClick={() => openCloseDialog(trip)}>
+                          Close Trip
+                        </Button>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -678,30 +718,61 @@ export default function TripsPage() {
                   />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-2">
-                  <Label htmlFor="trip_start_time">Trip Start</Label>
-                  <Input
-                    id="trip_start_time"
-                    type="datetime-local"
-                    value={form.trip_start_time}
-                    onChange={(e) => setForm({ ...form, trip_start_time: e.target.value })}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="trip_end_time">Trip Close</Label>
-                  <Input
-                    id="trip_end_time"
-                    type="datetime-local"
-                    value={form.trip_end_time}
-                    onChange={(e) => setForm({ ...form, trip_end_time: e.target.value })}
-                  />
-                </div>
+              <div className="space-y-2">
+                <Label htmlFor="trip_start_time">Trip Date & Time</Label>
+                <Input
+                  id="trip_start_time"
+                  type="datetime-local"
+                  value={form.trip_start_time}
+                  onChange={(e) => setForm({ ...form, trip_start_time: e.target.value })}
+                />
               </div>
               <DialogFooter showCloseButton>
                 <Button type="submit" disabled={saving} className="min-h-[48px]">
                   {saving && <Loader2 className="size-4 animate-spin" />}
                   {saving ? "Saving..." : "Add Trip"}
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </div>
+      </Dialog>
+
+      <Dialog open={!!closeTrip} onOpenChange={() => setCloseTrip(null)}>
+        <div className="mobile-bottom-sheet">
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Close Trip</DialogTitle>
+            </DialogHeader>
+            <form onSubmit={handleCloseTrip} className="space-y-4">
+              {closeTrip && (
+                <div className="space-y-1 text-sm text-muted-foreground">
+                  <p>
+                    Truck:{" "}
+                    <span className="font-medium text-foreground">
+                      {closeTrip.trucks?.truck_number}
+                    </span>
+                  </p>
+                </div>
+              )}
+              <div className="space-y-2">
+                <Label htmlFor="close_date">Close Date & Time *</Label>
+                <Input
+                  id="close_date"
+                  type="datetime-local"
+                  value={closeDateTime}
+                  onChange={(e) => setCloseDateTime(e.target.value)}
+                  required
+                />
+              </div>
+              <DialogFooter showCloseButton>
+                <Button
+                  type="submit"
+                  disabled={closing}
+                  className="min-h-[48px]"
+                >
+                  {closing && <Loader2 className="size-4 animate-spin" />}
+                  {closing ? "Closing..." : "Confirm Close"}
                 </Button>
               </DialogFooter>
             </form>
