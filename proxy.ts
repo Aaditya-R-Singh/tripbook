@@ -22,15 +22,9 @@ export async function proxy(request: NextRequest) {
   const { data: { session } } = await supabase.auth.getSession()
   const path = request.nextUrl.pathname
 
-  // Not logged in — allow / and /onboarding, redirect everything else to /
-  if (!session) {
-    if (path === "/" || path === "/onboarding") return res
-    return NextResponse.redirect(new URL("/", request.url))
-  }
+  if (!session || path === "/") return res
 
-  // Logged in — check owners table
   const phone = session.user.email?.split("@")[0]
-
   if (!phone) {
     await supabase.auth.signOut()
     return NextResponse.redirect(new URL("/", request.url))
@@ -42,20 +36,13 @@ export async function proxy(request: NextRequest) {
     .eq("phone", phone)
     .maybeSingle()
 
-  // Logged in but no owner record → must onboard
-  if (!owner) {
-    if (path === "/onboarding") return res
-    return NextResponse.redirect(new URL("/onboarding", request.url))
-  }
-
-  // Has owner but visiting onboarding → redirect to dashboard
-  if (path === "/onboarding") {
-    return NextResponse.redirect(new URL("/dashboard", request.url))
+  if (!owner && path.startsWith("/dashboard")) {
+    return NextResponse.redirect(new URL("/", request.url))
   }
 
   return res
 }
 
 export const config = {
-  matcher: ["/onboarding", "/dashboard/:path*"],
+  matcher: ["/dashboard/:path*"],
 }
