@@ -45,6 +45,7 @@ type TripRow = {
   amount: number | null
   payment_status: string
   status: string
+  total_paid: number
   trucks: { truck_number: string } | null
 }
 
@@ -93,18 +94,22 @@ export default function TripsPage() {
   const [saving, setSaving] = useState(false)
   const [form, setForm] = useState<TripForm>(emptyForm)
 
-  const [confirmPaidId, setConfirmPaidId] = useState<string | null>(null)
+  const [payTrip, setPayTrip] = useState<TripRow | null>(null)
+  const [payAmount, setPayAmount] = useState("")
+  const [payDate, setPayDate] = useState("")
+  const [payMode, setPayMode] = useState("cash")
   const [markingPaid, setMarkingPaid] = useState(false)
 
   async function fetchData() {
     setError(null)
     try {
-      const [tripsRes, trucksRes] = await Promise.all([
+      const [tripsRes, trucksRes, paymentsRes] = await Promise.all([
         supabase
           .from("trips")
           .select("*, trucks(truck_number)")
           .order("trip_start_time", { ascending: false }),
         supabase.from("trucks").select("id, truck_number").order("truck_number"),
+        supabase.from("payments").select("trip_id, amount"),
       ])
 
       if (tripsRes.error) {
@@ -113,8 +118,21 @@ export default function TripsPage() {
       if (trucksRes.error) {
         throw new Error(trucksRes.error.message)
       }
+      if (paymentsRes.error) {
+        throw new Error(paymentsRes.error.message)
+      }
 
-      setTrips(tripsRes.data as unknown as TripRow[])
+      const paidMap: Record<string, number> = {}
+      for (const p of paymentsRes.data ?? []) {
+        paidMap[p.trip_id] = (paidMap[p.trip_id] ?? 0) + (p.amount ?? 0)
+      }
+
+      const tripsWithPaid = (tripsRes.data as unknown as TripRow[]).map((t) => ({
+        ...t,
+        total_paid: paidMap[t.id] ?? 0,
+      }))
+
+      setTrips(tripsWithPaid)
       setTrucks(trucksRes.data as unknown as Truck[])
     } catch (err) {
       console.error("Trips fetch error:", err)
@@ -188,7 +206,10 @@ export default function TripsPage() {
     const paidAmount = filtered
       .filter((t) => t.payment_status === "paid")
       .reduce((s, t) => s + (t.amount ?? 0), 0)
-    return { totalTrips, totalAmount, pendingAmount, paidAmount }
+    const partialLeftover = filtered
+      .filter((t) => t.payment_status === "partial")
+      .reduce((s, t) => s + ((t.amount ?? 0) - t.total_paid), 0)
+    return { totalTrips, totalAmount, pendingAmount, paidAmount, partialLeftover }
   }, [filtered])
 
   const truckItems = useMemo(() => {
@@ -244,23 +265,54 @@ export default function TripsPage() {
     await fetchData()
   }
 
-  async function markAsPaid(tripId: string) {
-    setMarkingPaid(true)
-    const { error } = await supabase
-      .from("trips")
-      .update({ payment_status: "paid" })
-      .eq("id", tripId)
+  function openPayDialog(trip: TripRow) {
+    setPayTrip(trip)
+    setPayAmount(trip.amount?.toString() ?? "")
+    setPayDate(format(new Date(), "yyyy-MM-dd"))
+    setPayMode("cash")
+  }
 
-    if (error) {
-      toast.error(error.message)
-      setMarkingPaid(false)
+  async function handleMarkPaid(e: React.FormEvent) {
+    e.preventDefault()
+    if (!payTrip) return
+
+    const amount = parseFloat(payAmount)
+    if (isNaN(amount) || amount <= 0) {
+      toast.error("Enter a valid amount")
       return
     }
 
-    toast.success("Saved! ✅")
-    setMarkingPaid(false)
-    setConfirmPaidId(null)
-    await fetchData()
+    const fullAmount = payTrip.amount ?? 0
+    const newTotalPaid = (payTrip.total_paid ?? 0) + amount
+    const newStatus = newTotalPaid >= fullAmount ? "paid" : "partial"
+
+    setMarkingPaid(true)
+    try {
+      const { error: updateErr } = await supabase
+        .from("trips")
+        .update({ payment_status: newStatus })
+        .eq("id", payTrip.id)
+
+      if (updateErr) throw new Error(updateErr.message)
+
+      const { error: insertErr } = await supabase.from("payments").insert({
+        owner_id: ownerId,
+        trip_id: payTrip.id,
+        amount,
+        paid_at: payDate + "T00:00:00",
+        notes: payMode,
+      })
+
+      if (insertErr) throw new Error(insertErr.message)
+
+      toast.success("Saved! ✅")
+      setPayTrip(null)
+      await fetchData()
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to mark as paid")
+    } finally {
+      setMarkingPaid(false)
+    }
   }
 
   return (
@@ -349,6 +401,7 @@ export default function TripsPage() {
                 <SelectContent>
                   <SelectItem value="all">All</SelectItem>
                   <SelectItem value="pending">Pending</SelectItem>
+                  <SelectItem value="partial">Partial</SelectItem>
                   <SelectItem value="paid">Paid</SelectItem>
                 </SelectContent>
               </Select>
@@ -428,9 +481,16 @@ export default function TripsPage() {
                             {trip.amount != null ? `₹${trip.amount.toLocaleString()}` : "—"}
                           </TableCell>
                           <TableCell className="whitespace-nowrap">
-                            <Badge variant={trip.payment_status === "paid" ? "secondary" : "destructive"}>
-                              {trip.payment_status}
-                            </Badge>
+                            <div className="flex flex-col items-start gap-0.5">
+                              <Badge variant={trip.payment_status === "paid" ? "secondary" : trip.payment_status === "partial" ? "default" : "destructive"}>
+                                {trip.payment_status}
+                              </Badge>
+                              {trip.payment_status === "partial" && (
+                                <span className="text-xs text-muted-foreground">
+                                  ₹{trip.total_paid.toLocaleString()} paid, ₹{((trip.amount ?? 0) - trip.total_paid).toLocaleString()} left
+                                </span>
+                              )}
+                            </div>
                           </TableCell>
                           <TableCell className="whitespace-nowrap">
                             <Badge variant={trip.status === "active" ? "default" : "secondary"}>
@@ -438,9 +498,9 @@ export default function TripsPage() {
                             </Badge>
                           </TableCell>
                           <TableCell className="text-right whitespace-nowrap">
-                            {trip.payment_status === "pending" && (
-                              <Button variant="outline" size="sm" onClick={() => setConfirmPaidId(trip.id)}>
-                                Mark Paid
+                            {(trip.payment_status === "pending" || trip.payment_status === "partial") && (
+                              <Button variant="outline" size="sm" onClick={() => openPayDialog(trip)}>
+                                {trip.payment_status === "partial" ? "Pay More" : "Mark Paid"}
                               </Button>
                             )}
                           </TableCell>
@@ -478,15 +538,24 @@ export default function TripsPage() {
                       </div>
                       <div className="flex justify-between">
                         <span>Amount:</span>
-                        <span className="text-foreground font-medium">{trip.amount != null ? `₹${trip.amount.toLocaleString()}` : "—"}</span>
+                        <div className="text-right">
+                          <span className="text-foreground font-medium">{trip.amount != null ? `₹${trip.amount.toLocaleString()}` : "—"}</span>
+                          {trip.payment_status === "partial" && (
+                            <div className="text-xs text-muted-foreground">
+                              ₹{trip.total_paid.toLocaleString()} paid, ₹{((trip.amount ?? 0) - trip.total_paid).toLocaleString()} left
+                            </div>
+                          )}
+                        </div>
                       </div>
                       <div className="flex items-center justify-between pt-1">
-                        <Badge variant={trip.payment_status === "paid" ? "secondary" : "destructive"}>
-                          {trip.payment_status}
-                        </Badge>
-                        {trip.payment_status === "pending" && (
-                          <Button variant="outline" size="sm" className="min-h-[40px]" onClick={() => setConfirmPaidId(trip.id)}>
-                            Mark Paid
+                        <div className="flex flex-col gap-0.5">
+                          <Badge variant={trip.payment_status === "paid" ? "secondary" : trip.payment_status === "partial" ? "default" : "destructive"}>
+                            {trip.payment_status}
+                          </Badge>
+                        </div>
+                        {(trip.payment_status === "pending" || trip.payment_status === "partial") && (
+                          <Button variant="outline" size="sm" className="min-h-[40px]" onClick={() => openPayDialog(trip)}>
+                            {trip.payment_status === "partial" ? "Pay More" : "Mark Paid"}
                           </Button>
                         )}
                       </div>
@@ -513,7 +582,10 @@ export default function TripsPage() {
               </div>
               <div>
                 <span className="text-muted-foreground">Pending: </span>
-                <span className="font-semibold text-red-600">₹{summary.pendingAmount.toLocaleString()}</span>
+                <span className="font-semibold text-red-600">₹{(summary.pendingAmount + summary.partialLeftover).toLocaleString()}</span>
+                {summary.partialLeftover > 0 && (
+                  <span className="text-xs text-muted-foreground"> (incl. ₹{summary.partialLeftover.toLocaleString()} partial)</span>
+                )}
               </div>
               <div>
                 <span className="text-muted-foreground">Paid: </span>
@@ -621,26 +693,94 @@ export default function TripsPage() {
         </div>
       </Dialog>
 
-      <Dialog open={!!confirmPaidId} onOpenChange={() => setConfirmPaidId(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Confirm Payment</DialogTitle>
-          </DialogHeader>
-          <p className="text-sm text-muted-foreground">
-            Mark this trip as paid? This action cannot be undone.
-          </p>
-          <DialogFooter showCloseButton>
-            <Button
-              variant="default"
-              onClick={() => confirmPaidId && markAsPaid(confirmPaidId)}
-              disabled={markingPaid}
-              className="min-h-[48px]"
-            >
-              {markingPaid && <Loader2 className="size-4 animate-spin" />}
-              {markingPaid ? "Marking..." : "Yes, Mark as Paid"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
+      <Dialog open={!!payTrip} onOpenChange={() => setPayTrip(null)}>
+        <div className="mobile-bottom-sheet">
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Mark as Paid</DialogTitle>
+            </DialogHeader>
+            <form onSubmit={handleMarkPaid} className="space-y-4">
+              {payTrip && (
+                <div className="space-y-1 text-sm text-muted-foreground">
+                  <p>
+                    Truck:{" "}
+                    <span className="font-medium text-foreground">
+                      {payTrip.trucks?.truck_number}
+                    </span>
+                  </p>
+                  <p>
+                    Total Amount:{" "}
+                    <span className="font-medium text-foreground">
+                      ₹{payTrip.amount?.toLocaleString() ?? "—"}
+                    </span>
+                  </p>
+                  {(payTrip.total_paid ?? 0) > 0 && (
+                    <p>
+                      Already Paid:{" "}
+                      <span className="font-medium text-green-600">
+                        ₹{payTrip.total_paid.toLocaleString()}
+                      </span>
+                    </p>
+                  )}
+                  {(payTrip.total_paid ?? 0) > 0 && (
+                    <p>
+                      Leftover:{" "}
+                      <span className="font-medium text-red-600">
+                        ₹{((payTrip.amount ?? 0) - payTrip.total_paid).toLocaleString()}
+                      </span>
+                    </p>
+                  )}
+                </div>
+              )}
+              <div className="space-y-2">
+                <Label htmlFor="paid_amount">Amount (₹) *</Label>
+                <Input
+                  id="paid_amount"
+                  type="number"
+                  placeholder="0"
+                  value={payAmount}
+                  onChange={(e) => setPayAmount(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="paid_date">Payment Date *</Label>
+                <Input
+                  id="paid_date"
+                  type="date"
+                  value={payDate}
+                  onChange={(e) => setPayDate(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="paid_mode">Payment Mode</Label>
+                <Select value={payMode} onValueChange={(v) => setPayMode(v ?? "cash")}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="cash">Cash</SelectItem>
+                    <SelectItem value="cheque">Cheque</SelectItem>
+                    <SelectItem value="online">Online</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <DialogFooter showCloseButton>
+                <Button
+                  type="submit"
+                  disabled={markingPaid}
+                  className="min-h-[48px]"
+                >
+                  {markingPaid && (
+                    <Loader2 className="size-4 animate-spin" />
+                  )}
+                  {markingPaid ? "Saving..." : "Confirm Payment"}
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </div>
       </Dialog>
     </div>
   )
