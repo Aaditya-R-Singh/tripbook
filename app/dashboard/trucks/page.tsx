@@ -4,7 +4,7 @@ import { useEffect, useState } from "react"
 import { format } from "date-fns"
 import toast from "react-hot-toast"
 import { PencilIcon, PlusIcon, PowerIcon, PowerOffIcon, SearchIcon, Loader2, RefreshCw, Truck } from "lucide-react"
-import { supabase } from "@/lib/supabase"
+import { getSupabase } from "@/lib/supabase"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -47,6 +47,7 @@ const emptyForm: FormData = {
 }
 
 export default function TrucksPage() {
+  const supabase = getSupabase()
   const [trucks, setTrucks] = useState<Truck[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -74,8 +75,8 @@ export default function TrucksPage() {
   }
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      setOwnerId(data.session?.user?.id ?? null)
+    supabase.auth.getSession().then(({ data }: { data: { session: { user: { id: string } | null } | null } | null }) => {
+      setOwnerId(data?.session?.user?.id ?? null)
     })
   }, [])
 

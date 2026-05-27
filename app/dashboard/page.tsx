@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from "react"
 import { format } from "date-fns"
 import { RefreshCw, Plus, Truck, Route, Wallet, ShieldCheck, ArrowUpRight } from "lucide-react"
-import { supabase } from "@/lib/supabase"
+import { getSupabase } from "@/lib/supabase"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import {
   Table,
@@ -41,6 +41,7 @@ type ExpiringPass = {
 }
 
 export default function DashboardPage() {
+  const supabase = getSupabase()
   const router = useRouter()
   const [todayTrips, setTodayTrips] = useState(0)
   const [activeTrucks, setActiveTrucks] = useState(0)

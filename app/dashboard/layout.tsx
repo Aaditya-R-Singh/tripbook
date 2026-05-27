@@ -11,7 +11,7 @@ import {
   Plus,
   LogOut,
 } from "lucide-react"
-import { supabase } from "@/lib/supabase"
+import { getSupabase } from "@/lib/supabase"
 import toast from "react-hot-toast"
 
 const navItems = [
@@ -28,6 +28,7 @@ export default function DashboardLayout({
 }: {
   children: React.ReactNode
 }) {
+  const supabase = getSupabase()
   const router = useRouter()
   const pathname = usePathname()
 

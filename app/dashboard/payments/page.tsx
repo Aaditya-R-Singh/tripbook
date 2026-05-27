@@ -11,7 +11,7 @@ import {
   AlertTriangle,
   CheckCircle,
 } from "lucide-react"
-import { supabase } from "@/lib/supabase"
+import { getSupabase } from "@/lib/supabase"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -55,6 +55,7 @@ type TripRow = {
 type MonthPreset = "this" | "last" | "custom"
 
 export default function PaymentsPage() {
+  const supabase = getSupabase()
   const [trips, setTrips] = useState<TripRow[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -88,8 +89,8 @@ export default function PaymentsPage() {
   }
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      setOwnerId(data.session?.user?.id ?? null)
+    supabase.auth.getSession().then(({ data }: { data: { session: { user: { id: string } | null } | null } | null }) => {
+      setOwnerId(data?.session?.user?.id ?? null)
     })
   }, [])
 

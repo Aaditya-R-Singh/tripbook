@@ -1,6 +1,13 @@
 import { createBrowserClient } from "@supabase/auth-helpers-nextjs"
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+let _client: ReturnType<typeof createBrowserClient> | null = null
 
-export const supabase = createBrowserClient(supabaseUrl, supabaseAnonKey)
+export function getSupabase(): ReturnType<typeof createBrowserClient> {
+  if (!_client) {
+    _client = createBrowserClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    )
+  }
+  return _client!
+}

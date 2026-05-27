@@ -3,13 +3,14 @@
 import { useActionState, useEffect, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { createOwner, register } from "@/app/actions/onboarding"
-import { supabase } from "@/lib/supabase"
+import { getSupabase } from "@/lib/supabase"
 import toast from "react-hot-toast"
 import { Eye, EyeOff, Loader2 } from "lucide-react"
 
 const initialState = { error: null as string | null }
 
 export default function OnboardingPage() {
+  const supabase = getSupabase()
   const router = useRouter()
   const searchParams = useSearchParams()
   const prefilledPhone = searchParams.get("phone") || ""
@@ -23,8 +24,8 @@ export default function OnboardingPage() {
   const [registerState, registerAction, registerPending] = useActionState(register, initialState)
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      setSession(!!data.session)
+    supabase.auth.getSession().then(({ data }: { data: { session: unknown } | null }) => {
+      setSession(!!data?.session)
     })
   }, [])
 

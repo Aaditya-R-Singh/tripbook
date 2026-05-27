@@ -2,11 +2,12 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { supabase } from "@/lib/supabase"
+import { getSupabase } from "@/lib/supabase"
 import toast from "react-hot-toast"
 import { Eye, EyeOff } from "lucide-react"
 
 export default function LoginPage() {
+  const supabase = getSupabase()
   const router = useRouter()
   const [phone, setPhone] = useState("")
   const [password, setPassword] = useState("")

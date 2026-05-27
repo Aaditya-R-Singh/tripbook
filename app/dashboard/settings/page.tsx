@@ -2,11 +2,12 @@
 
 import { useRouter } from "next/navigation"
 import { LogOut } from "lucide-react"
-import { supabase } from "@/lib/supabase"
+import { getSupabase } from "@/lib/supabase"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import toast from "react-hot-toast"
 
 export default function SettingsPage() {
+  const supabase = getSupabase()
   const router = useRouter()
 
   const handleLogout = async () => {

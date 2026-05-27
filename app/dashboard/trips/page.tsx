@@ -4,7 +4,7 @@ import { useEffect, useState, useMemo } from "react"
 import { format } from "date-fns"
 import toast from "react-hot-toast"
 import { PlusIcon, Loader2, RefreshCw, Route } from "lucide-react"
-import { supabase } from "@/lib/supabase"
+import { getSupabase } from "@/lib/supabase"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -76,6 +76,7 @@ const emptyForm: TripForm = {
 type DatePreset = "today" | "week" | "month" | "custom"
 
 export default function TripsPage() {
+  const supabase = getSupabase()
   const [trips, setTrips] = useState<TripRow[]>([])
   const [trucks, setTrucks] = useState<Truck[]>([])
   const [loading, setLoading] = useState(true)
@@ -122,8 +123,8 @@ export default function TripsPage() {
   }
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      setOwnerId(data.session?.user?.id ?? null)
+    supabase.auth.getSession().then(({ data }: { data: { session: { user: { id: string } | null } | null } | null }) => {
+      setOwnerId(data?.session?.user?.id ?? null)
     })
   }, [])
 
