@@ -16,6 +16,7 @@ function getAdmin() {
 export async function createOwner(_prevState: unknown, formData: FormData) {
   const name = formData.get("name") as string
   const businessName = formData.get("businessName") as string
+  const city = formData.get("city") as string
 
   if (!name?.trim()) {
     return { error: "अपना नाम डालें" }
@@ -44,6 +45,7 @@ export async function createOwner(_prevState: unknown, formData: FormData) {
     name: name.trim(),
     phone,
     business_name: businessName?.trim() || null,
+    city: city?.trim() || null,
   })
 
   if (error) {
