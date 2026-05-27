@@ -35,6 +35,19 @@ export default function LoginPage() {
       return
     }
 
+    // Session is cached locally — no network call
+    const { data: { session } } = await supabase.auth.getSession()
+    const metadata = session?.user?.user_metadata
+
+    // If metadata has phone, owner record was created during onboarding
+    if (metadata?.phone) {
+      setLoading(false)
+      toast.success("लॉगिन सफल!")
+      router.push("/dashboard")
+      return
+    }
+
+    // Fallback: edge case where metadata wasn't set — query owners table
     const { data: owners } = await supabase
       .from("owners")
       .select("id")

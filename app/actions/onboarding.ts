@@ -50,6 +50,15 @@ export async function createOwner(_prevState: unknown, formData: FormData) {
     return { error: error.message }
   }
 
+  const { error: metadataError } = await admin.auth.admin.updateUserById(
+    user.id,
+    { user_metadata: { phone } },
+  )
+
+  if (metadataError) {
+    return { error: metadataError.message }
+  }
+
   redirect("/dashboard")
 }
 
