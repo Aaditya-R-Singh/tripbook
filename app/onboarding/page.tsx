@@ -1,6 +1,6 @@
 "use client"
 
-import { useActionState, useEffect, useState } from "react"
+import { Suspense, useActionState, useEffect, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { createOwner, register } from "@/app/actions/onboarding"
 import { getSupabase } from "@/lib/supabase"
@@ -10,6 +10,18 @@ import { Eye, EyeOff, Loader2 } from "lucide-react"
 const initialState = { error: null as string | null }
 
 export default function OnboardingPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex min-h-screen items-center justify-center">
+        <Loader2 className="size-6 animate-spin text-muted-foreground" />
+      </div>
+    }>
+      <OnboardingForm />
+    </Suspense>
+  )
+}
+
+function OnboardingForm() {
   const supabase = getSupabase()
   const router = useRouter()
   const searchParams = useSearchParams()
