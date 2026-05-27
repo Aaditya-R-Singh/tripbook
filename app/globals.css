@@ -46,16 +46,26 @@
   --radius-2xl: calc(var(--radius) * 1.8);
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
-  --color-orange-50: #fff7ed;
-  --color-orange-100: #ffedd5;
-  --color-orange-200: #fed7aa;
-  --color-orange-300: #fdba74;
-  --color-orange-400: #fb923c;
-  --color-orange-500: #f97316;
-  --color-orange-600: #ea580c;
-  --color-orange-700: #c2410c;
-  --color-orange-800: #9a3412;
-  --color-orange-900: #7c2d12;
+  --color-orange-50: #fef3ed;
+  --color-orange-100: #fde4d3;
+  --color-orange-200: #fac8a6;
+  --color-orange-300: #f5ad79;
+  --color-orange-400: #ef914d;
+  --color-orange-500: #E8651A;
+  --color-orange-600: #cf5614;
+  --color-orange-700: #b6480f;
+  --color-orange-800: #9d3a0b;
+  --color-orange-900: #842d07;
+  --color-gold-50: #faf4e5;
+  --color-gold-100: #f5e8cb;
+  --color-gold-200: #ebd197;
+  --color-gold-300: #e1ba63;
+  --color-gold-400: #d7a32f;
+  --color-gold-500: #C9962A;
+  --color-gold-600: #b78725;
+  --color-gold-700: #a47821;
+  --color-gold-800: #92691c;
+  --color-gold-900: #7f5a18;
   --color-emerald-50: #ecfdf5;
   --color-emerald-500: #10b981;
   --color-emerald-600: #059669;
@@ -74,38 +84,38 @@
 }
 
 :root {
-  --background: oklch(0.985 0.002 247); /* slate-50 */
-  --foreground: oklch(0.129 0.042 264); /* slate-900 */
+  --background: oklch(0.98 0.005 80); /* cream #FAF8F4 */
+  --foreground: oklch(0.12 0.01 264); /* charcoal #111111 */
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.129 0.042 264);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.129 0.042 264);
-  --primary: oklch(0.65 0.17 35); /* orange ~ #f97316 */
+  --primary: oklch(0.62 0.16 32); /* Deep Saffron #E8651A */
   --primary-foreground: oklch(0.985 0 0);
   --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
+  --secondary-foreground: oklch(0.12 0.01 264);
   --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
+  --muted-foreground: oklch(0.5 0.01 80);
+  --accent: oklch(0.94 0.03 80);
+  --accent-foreground: oklch(0.12 0.01 264);
   --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.65 0.17 35); /* orange ring */
+  --border: oklch(0.9 0.01 80);
+  --input: oklch(0.9 0.01 80);
+  --ring: oklch(0.62 0.16 32); /* Deep Saffron ring */
   --radius: 1rem; /* 16px base radius */
-  --chart-1: oklch(0.65 0.17 35);
+  --chart-1: oklch(0.62 0.16 32);
   --chart-2: oklch(0.556 0 0);
   --chart-3: oklch(0.439 0 0);
   --chart-4: oklch(0.371 0 0);
   --chart-5: oklch(0.269 0 0);
   --sidebar: oklch(0.129 0.042 264); /* slate-900 */
   --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.65 0.17 35);
+  --sidebar-primary: oklch(0.62 0.16 32);
   --sidebar-primary-foreground: oklch(0.985 0 0);
   --sidebar-accent: oklch(0.279 0.041 260); /* slate-800 */
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(0.279 0.041 260 / 0.5);
-  --sidebar-ring: oklch(0.65 0.17 35);
+  --sidebar-ring: oklch(0.62 0.16 32);
 }
 
 .dark {
@@ -185,13 +195,16 @@
 
 /* ===== Gradient Utilities ===== */
 .bg-gradient-brand {
-  background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+  background: linear-gradient(135deg, #E8651A 0%, #C9962A 100%);
 }
 .bg-gradient-subtle {
-  background: linear-gradient(180deg, oklch(0.985 0.003 247) 0%, oklch(0.97 0 0) 100%);
+  background: linear-gradient(180deg, oklch(0.98 0.005 80) 0%, oklch(0.97 0 0) 100%);
 }
 .bg-gradient-orange-subtle {
-  background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%);
+  background: linear-gradient(135deg, #fef3ed 0%, #fde4d3 100%);
+}
+.bg-gradient-gold-subtle {
+  background: linear-gradient(135deg, #faf4e5 0%, #f5e8cb 100%);
 }
 .bg-gradient-emerald-subtle {
   background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
@@ -203,7 +216,7 @@
   background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
 }
 .text-gradient-brand {
-  background: linear-gradient(135deg, #f97316, #ea580c);
+  background: linear-gradient(135deg, #E8651A, #C9962A);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
