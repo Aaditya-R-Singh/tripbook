@@ -4,6 +4,7 @@ CREATE TABLE IF NOT EXISTS owners (
   name text NOT NULL,
   phone text NOT NULL UNIQUE,
   business_name text,
+  city text,
   created_at timestamp DEFAULT now()
 );
 
