@@ -49,6 +49,7 @@ type TripRow = {
   amount: number | null
   payment_status: string
   trip_start_time: string
+  total_paid: number
   trucks: { truck_number: string } | null
 }
 
@@ -74,14 +75,29 @@ export default function PaymentsPage() {
   async function loadData() {
     setError(null)
     try {
-      const { data, error: err } = await supabase
-        .from("trips")
-        .select("*, trucks(truck_number)")
-        .not("destination", "is", null)
-        .order("trip_start_time", { ascending: false })
+      const [tripsRes, paymentsRes] = await Promise.all([
+        supabase
+          .from("trips")
+          .select("*, trucks(truck_number)")
+          .not("destination", "is", null)
+          .order("trip_start_time", { ascending: false }),
+        supabase.from("payments").select("trip_id, amount"),
+      ])
 
-      if (err) throw new Error(err.message)
-      setTrips((data ?? []) as unknown as TripRow[])
+      if (tripsRes.error) throw new Error(tripsRes.error.message)
+      if (paymentsRes.error) throw new Error(paymentsRes.error.message)
+
+      const paidMap: Record<string, number> = {}
+      for (const p of paymentsRes.data ?? []) {
+        paidMap[p.trip_id] = (paidMap[p.trip_id] ?? 0) + (p.amount ?? 0)
+      }
+
+      setTrips(
+        ((tripsRes.data ?? []) as unknown as TripRow[]).map((t) => ({
+          ...t,
+          total_paid: paidMap[t.id] ?? 0,
+        })),
+      )
     } catch (err) {
       console.error("Payments load error:", err)
       setError(err instanceof Error ? err.message : "Failed to load data")
@@ -158,6 +174,11 @@ export default function PaymentsPage() {
         if (daysSince > 7) overdueCount++
       } else if (trip.payment_status === "paid") {
         totalPaid += trip.amount ?? 0
+      } else if (trip.payment_status === "partial") {
+        totalPending += (trip.amount ?? 0) - trip.total_paid
+        totalPaid += trip.total_paid
+        const daysSince = differenceInDays(now, new Date(trip.trip_start_time))
+        if (daysSince > 7) overdueCount++
       }
     }
 
@@ -181,11 +202,15 @@ export default function PaymentsPage() {
       return
     }
 
+    const fullAmount = markPaidTrip.amount ?? 0
+    const newTotalPaid = (markPaidTrip.total_paid ?? 0) + amount
+    const newStatus = newTotalPaid >= fullAmount ? "paid" : "partial"
+
     setMarkingPaid(true)
     try {
       const { error: updateErr } = await supabase
         .from("trips")
-        .update({ payment_status: "paid" })
+        .update({ payment_status: newStatus })
         .eq("id", markPaidTrip.id)
 
       if (updateErr) throw new Error(updateErr.message)
@@ -205,7 +230,9 @@ export default function PaymentsPage() {
 
       setTrips((prev) =>
         prev.map((t) =>
-          t.id === markPaidTrip.id ? { ...t, payment_status: "paid" } : t,
+          t.id === markPaidTrip.id
+            ? { ...t, payment_status: newStatus, total_paid: newTotalPaid }
+            : t,
         ),
       )
     } catch (err) {
@@ -461,32 +488,41 @@ export default function PaymentsPage() {
                                   : "—"}
                               </TableCell>
                               <TableCell className="whitespace-nowrap">
-                                {isOverdue ? (
-                                  <span className="inline-flex items-center gap-1 text-xs font-medium text-red-600">
-                                    <AlertTriangle className="size-3" />
-                                    Overdue
-                                  </span>
-                                ) : (
-                                  <Badge
-                                    variant={
-                                      trip.payment_status === "paid"
-                                        ? "secondary"
-                                        : "destructive"
-                                    }
-                                  >
-                                    {trip.payment_status}
-                                  </Badge>
-                                )}
+                                <div className="flex flex-col items-start gap-0.5">
+                                  {isOverdue ? (
+                                    <span className="inline-flex items-center gap-1 text-xs font-medium text-red-600">
+                                      <AlertTriangle className="size-3" />
+                                      Overdue
+                                    </span>
+                                  ) : (
+                                    <Badge
+                                      variant={
+                                        trip.payment_status === "paid"
+                                          ? "secondary"
+                                          : trip.payment_status === "partial"
+                                            ? "default"
+                                            : "destructive"
+                                      }
+                                    >
+                                      {trip.payment_status}
+                                    </Badge>
+                                  )}
+                                  {trip.payment_status === "partial" && (
+                                    <span className="text-xs text-muted-foreground">
+                                      ₹{trip.total_paid.toLocaleString()} paid, ₹{((trip.amount ?? 0) - trip.total_paid).toLocaleString()} left
+                                    </span>
+                                  )}
+                                </div>
                               </TableCell>
                               <TableCell className="whitespace-nowrap text-right">
-                                {trip.payment_status === "pending" && (
+                                {(trip.payment_status === "pending" || trip.payment_status === "partial") && (
                                   <Button
                                     variant="outline"
                                     size="sm"
                                     onClick={() => openMarkPaid(trip)}
                                   >
                                     <CheckCircle className="size-3" />
-                                    Mark Paid
+                                    {trip.payment_status === "partial" ? "Pay More" : "Mark Paid"}
                                   </Button>
                                 )}
                                 {trip.payment_status === "paid" && (
@@ -533,7 +569,9 @@ export default function PaymentsPage() {
                               variant={
                                 trip.payment_status === "paid"
                                   ? "secondary"
-                                  : "destructive"
+                                  : trip.payment_status === "partial"
+                                    ? "default"
+                                    : "destructive"
                               }
                             >
                               {trip.payment_status}
@@ -558,17 +596,24 @@ export default function PaymentsPage() {
                           </div>
                           <div className="flex justify-between">
                             <span>Amount:</span>
-                            <span
-                              className={`font-medium ${
-                                isOverdue ? "text-red-600" : "text-foreground"
-                              }`}
-                            >
-                              {trip.amount != null
-                                ? `₹${trip.amount.toLocaleString()}`
-                                : "—"}
-                            </span>
+                            <div className="text-right">
+                              <span
+                                className={`font-medium ${
+                                  isOverdue ? "text-red-600" : "text-foreground"
+                                }`}
+                              >
+                                {trip.amount != null
+                                  ? `₹${trip.amount.toLocaleString()}`
+                                  : "—"}
+                              </span>
+                              {trip.payment_status === "partial" && (
+                                <div className="text-xs text-muted-foreground">
+                                  ₹{trip.total_paid.toLocaleString()} paid, ₹{((trip.amount ?? 0) - trip.total_paid).toLocaleString()} left
+                                </div>
+                              )}
+                            </div>
                           </div>
-                          {trip.payment_status === "pending" && (
+                          {(trip.payment_status === "pending" || trip.payment_status === "partial") && (
                             <div className="pt-2">
                               <Button
                                 variant="outline"
@@ -577,7 +622,7 @@ export default function PaymentsPage() {
                                 onClick={() => openMarkPaid(trip)}
                               >
                                 <CheckCircle className="size-3" />
-                                Mark Paid
+                                {trip.payment_status === "partial" ? "Pay More" : "Mark Paid"}
                               </Button>
                             </div>
                           )}
@@ -600,7 +645,7 @@ export default function PaymentsPage() {
         <div className="mobile-bottom-sheet">
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Mark as Paid</DialogTitle>
+              <DialogTitle>{(markPaidTrip?.total_paid ?? 0) > 0 ? "Pay More" : "Mark as Paid"}</DialogTitle>
             </DialogHeader>
             <form onSubmit={handleMarkPaid} className="space-y-4">
               {markPaidTrip && (
@@ -618,14 +663,27 @@ export default function PaymentsPage() {
                     </span>
                   </p>
                   <p>
-                    Date:{" "}
+                    Total Amount:{" "}
                     <span className="font-medium text-foreground">
-                      {format(
-                        new Date(markPaidTrip.trip_start_time),
-                        "dd MMM yyyy",
-                      )}
+                      ₹{markPaidTrip.amount?.toLocaleString() ?? "—"}
                     </span>
                   </p>
+                  {(markPaidTrip.total_paid ?? 0) > 0 && (
+                    <>
+                      <p>
+                        Already Paid:{" "}
+                        <span className="font-medium text-green-600">
+                          ₹{markPaidTrip.total_paid.toLocaleString()}
+                        </span>
+                      </p>
+                      <p>
+                        Leftover:{" "}
+                        <span className="font-medium text-red-600">
+                          ₹{((markPaidTrip.amount ?? 0) - markPaidTrip.total_paid).toLocaleString()}
+                        </span>
+                      </p>
+                    </>
+                  )}
                 </div>
               )}
               <div className="space-y-2">
