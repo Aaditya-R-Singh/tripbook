@@ -22,8 +22,9 @@ export async function middleware(request: NextRequest) {
   const { data: { session } } = await supabase.auth.getSession()
   const path = request.nextUrl.pathname
 
-  // Not logged in — only allow public pages
+  // Not logged in — allow / and /onboarding, redirect everything else to /
   if (!session) {
+    if (path === "/" || path === "/onboarding") return res
     return NextResponse.redirect(new URL("/", request.url))
   }
 
