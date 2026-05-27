@@ -267,7 +267,8 @@ export default function TripsPage() {
 
   function openPayDialog(trip: TripRow) {
     setPayTrip(trip)
-    setPayAmount(trip.amount?.toString() ?? "")
+    const leftover = (trip.amount ?? 0) - (trip.total_paid ?? 0)
+    setPayAmount(leftover > 0 ? leftover.toString() : trip.amount?.toString() ?? "")
     setPayDate(format(new Date(), "yyyy-MM-dd"))
     setPayMode("cash")
   }

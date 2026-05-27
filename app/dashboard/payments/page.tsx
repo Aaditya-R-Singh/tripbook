@@ -187,7 +187,8 @@ export default function PaymentsPage() {
 
   function openMarkPaid(trip: TripRow) {
     setMarkPaidTrip(trip)
-    setPaidAmount(trip.amount?.toString() ?? "")
+    const leftover = (trip.amount ?? 0) - (trip.total_paid ?? 0)
+    setPaidAmount(leftover > 0 ? leftover.toString() : trip.amount?.toString() ?? "")
     setPaidDate(format(new Date(), "yyyy-MM-dd"))
     setPaidMode("cash")
   }
