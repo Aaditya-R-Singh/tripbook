@@ -22,36 +22,36 @@ export async function middleware(request: NextRequest) {
   const { data: { session } } = await supabase.auth.getSession()
   const path = request.nextUrl.pathname
 
-  // CASE 1: Not logged in — send to login
+  // Not logged in — only allow public pages
   if (!session) {
-    if (path === "/" || path === "/onboarding") return res
     return NextResponse.redirect(new URL("/", request.url))
   }
 
-  // Extract phone from email: {phone}@tripbook.app
+  // Logged in — check owners table
   const phone = session.user.email?.split("@")[0]
 
-  // CASE 2 + 3: Logged in — check owners table
+  if (!phone) {
+    await supabase.auth.signOut()
+    return NextResponse.redirect(new URL("/", request.url))
+  }
+
   const { data: owner } = await supabase
     .from("owners")
     .select("id")
     .eq("phone", phone)
-    .single()
+    .maybeSingle()
 
-  // CASE 2: Logged in but no owner record
+  // Logged in but no owner record → must onboard
   if (!owner) {
-    // Allow onboarding page
     if (path === "/onboarding") return res
-    // Block everything else — send to onboarding
     return NextResponse.redirect(new URL("/onboarding", request.url))
   }
 
-  // CASE 4: Has owner record but visiting onboarding again
-  if (owner && path === "/onboarding") {
+  // Has owner but visiting onboarding → redirect to dashboard
+  if (path === "/onboarding") {
     return NextResponse.redirect(new URL("/dashboard", request.url))
   }
 
-  // CASE 3: All good — allow access
   return res
 }
 
