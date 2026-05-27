@@ -61,7 +61,8 @@ type TripForm = {
   destination: string
   material: string
   amount: string
-  trip_time: string
+  trip_start_time: string
+  trip_end_time: string
 }
 
 const emptyForm: TripForm = {
@@ -71,7 +72,8 @@ const emptyForm: TripForm = {
   destination: "",
   material: "sand",
   amount: "",
-  trip_time: "",
+  trip_start_time: "",
+  trip_end_time: "",
 }
 
 type DatePreset = "today" | "week" | "month" | "custom"
@@ -230,7 +232,8 @@ export default function TripsPage() {
   }
 
   function openAddDialog() {
-    setForm({ ...emptyForm, trip_time: localDatetime(new Date()) })
+    const now = localDatetime(new Date())
+    setForm({ ...emptyForm, trip_start_time: now, trip_end_time: now })
     setDialogOpen(true)
   }
 
@@ -250,7 +253,8 @@ export default function TripsPage() {
       destination: form.destination.trim() || null,
       material: form.material || "sand",
       amount: form.amount ? parseFloat(form.amount) : null,
-      trip_start_time: (form.trip_time || localDatetime(new Date())) + ":00",
+      trip_start_time: (form.trip_start_time || localDatetime(new Date())) + ":00",
+      trip_end_time: form.trip_end_time ? form.trip_end_time + ":00" : null,
     })
 
     if (error) {
@@ -674,14 +678,25 @@ export default function TripsPage() {
                   />
                 </div>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="trip_time">Trip Date & Time</Label>
-                <Input
-                  id="trip_time"
-                  type="datetime-local"
-                  value={form.trip_time}
-                  onChange={(e) => setForm({ ...form, trip_time: e.target.value })}
-                />
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <Label htmlFor="trip_start_time">Trip Start</Label>
+                  <Input
+                    id="trip_start_time"
+                    type="datetime-local"
+                    value={form.trip_start_time}
+                    onChange={(e) => setForm({ ...form, trip_start_time: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="trip_end_time">Trip Close</Label>
+                  <Input
+                    id="trip_end_time"
+                    type="datetime-local"
+                    value={form.trip_end_time}
+                    onChange={(e) => setForm({ ...form, trip_end_time: e.target.value })}
+                  />
+                </div>
               </div>
               <DialogFooter showCloseButton>
                 <Button type="submit" disabled={saving} className="min-h-[48px]">
