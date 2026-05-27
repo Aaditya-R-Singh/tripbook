@@ -49,12 +49,23 @@ export default function DashboardPage() {
   const [expiringSoon, setExpiringSoon] = useState(0)
   const [recentTrips, setRecentTrips] = useState<RecentTrip[]>([])
   const [expiringPasses, setExpiringPasses] = useState<ExpiringPass[]>([])
+  const [ownerName, setOwnerName] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   const loadData = useCallback(async () => {
     setError(null)
     try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) {
+        const { data: owner } = await supabase
+          .from("owners")
+          .select("name")
+          .eq("id", user.id)
+          .single()
+        if (owner) setOwnerName(owner.name)
+      }
+
       const today = new Date().toISOString().slice(0, 10)
       const sevenDaysLater = new Date()
       sevenDaysLater.setDate(sevenDaysLater.getDate() + 7)
@@ -166,7 +177,7 @@ export default function DashboardPage() {
       <div className="stagger-children">
         <div className="flex flex-col gap-1">
           <h1 className="text-3xl font-bold tracking-tight text-slate-900 md:text-4xl lg:text-5xl">
-            Good morning, <span className="text-gradient-brand">Boss</span>
+            Good morning, <span className="text-gradient-brand">{ownerName || "Boss"}</span>
           </h1>
           <p className="text-base text-muted-foreground leading-relaxed">
             Here&apos;s your fleet overview for today
