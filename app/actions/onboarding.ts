@@ -78,6 +78,7 @@ export async function register(_prevState: unknown, formData: FormData) {
     return { error: "अपना नाम डालें" }
   }
 
+  const city = formData.get("city") as string
   const email = `${phone}@tripbook.app`
   const cookieStore = await cookies()
   const admin = getAdmin()
@@ -121,6 +122,7 @@ export async function register(_prevState: unknown, formData: FormData) {
     name: name.trim(),
     phone,
     business_name: businessName?.trim() || null,
+    city: city?.trim() || null,
   })
 
   if (ownerError) {
